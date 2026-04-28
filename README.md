@@ -1,13 +1,13 @@
 # AutoModelCarROS2
 
-# 🚗 AVIM – Autonomous Vehicle Interface Manager
+# AVIM – Autonomous Vehicle Interface Manager
 
 > Sistema de conducción autónoma para el **TMR 2026** desarrollado sobre ROS 2 Humble.  
 > Raspberry Pi 4B + ESP32 (micro-ROS) + Orbbec Astra Pro + Arducam IMX219.
 
 ---
 
-## 📋 Tabla de contenido
+## Tabla de contenido
 
 - [Arquitectura del sistema](#arquitectura-del-sistema)
 - [Hardware requerido](#hardware-requerido)
