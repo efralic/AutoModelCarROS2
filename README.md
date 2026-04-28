@@ -74,7 +74,7 @@ Cámaras:
 ## Estructura del repositorio
 
 ```
-avim_ros2/
+AutoModelCarROS2/
 ├── README.md
 ├── .gitignore
 │
