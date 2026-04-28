@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>AVIM</name>
+  <version>0.0.0</version>
+  <description>AVIM - Autonomous Vehicle Interface Manager (ROS 2)</description>
+
+  <maintainer email="jose@todo.todo">jose</maintainer>
+  <license>TODO</license>
+
+  <!-- Build tool -->
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <!-- Dependencias de launch (necesarias para que ros2 launch funcione) -->
+  <exec_depend>ros2launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+
+  <!-- Paquetes propios del proyecto que se lanzan desde aquí -->
+  <exec_depend>lane_detection</exec_depend>
+  <exec_depend>object_detection</exec_depend>
+  <exec_depend>object_detection_parking</exec_depend>
+  <exec_depend>control</exec_depend>
+  <exec_depend>hardware_interface</exec_depend>
+
+  <!-- Drivers / hardware externos -->
+  <exec_depend>usb_cam</exec_depend>
+  <exec_depend>joy</exec_depend>
+  <!-- NOTA: reemplaza ldlidar_sl_ros (ROS 1) por su versión ROS 2 -->
+  <exec_depend>ldlidar_sl_ros2</exec_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>
