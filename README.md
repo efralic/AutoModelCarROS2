@@ -304,11 +304,7 @@ micro_ros_arduino    ESP32Servo
 
 ## Equipo
 
-> TMR 2026 — [Nombre del equipo]  
-> [Institución]
+> TMR 2026 — [Woosanos]  
+> [Universidad Veracruzana]
 
 ---
-
-## Licencia
-
-MIT License — ver `LICENSE` para detalles.
