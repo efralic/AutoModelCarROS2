@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>AVIM</name>
+  <name>avim</name>
   <version>0.0.0</version>
-  <description>AVIM - Autonomous Vehicle Interface Manager (ROS 2)</description>
+  <description>avim - Autonomous Vehicle Interface Manager (ROS 2)</description>
 
   <maintainer email="jose@todo.todo">jose</maintainer>
   <license>TODO</license>
@@ -26,7 +26,7 @@
   <exec_depend>usb_cam</exec_depend>
   <exec_depend>joy</exec_depend>
   <!-- NOTA: reemplaza ldlidar_sl_ros (ROS 1) por su versión ROS 2 -->
-  <exec_depend>ldlidar_sl_ros2</exec_depend>
+ 
 
   <export>
     <build_type>ament_cmake</build_type>
