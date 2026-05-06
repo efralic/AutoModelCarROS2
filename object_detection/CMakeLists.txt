@@ -50,7 +50,7 @@ target_link_libraries(object_detection_node
 )
 
 # ── Instalación ───────────────────────────────────────────────────────────────
-install(TARGETS object_detection
+install(TARGETS object_detection_node
   DESTINATION lib/${PROJECT_NAME}
 )
 
