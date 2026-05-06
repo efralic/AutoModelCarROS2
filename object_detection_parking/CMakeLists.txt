@@ -21,9 +21,9 @@ find_package(OpenCV        REQUIRED)
 find_package(object_detection REQUIRED)
 
 # ── Ejecutable ────────────────────────────────────────────────────────────────
-add_executable(object_detection_parking src/object_detection_parking.cpp)
+add_executable(object_detection_parking_node src/object_detection_parking.cpp)
 
-ament_target_dependencies(object_detection_parking
+ament_target_dependencies(object_detection_parking_node
   rclcpp
   std_msgs
   sensor_msgs
@@ -32,12 +32,12 @@ ament_target_dependencies(object_detection_parking
   object_detection        # ← da acceso a object_detection::msg::PointsObjects
 )
 
-target_link_libraries(object_detection_parking
+target_link_libraries(object_detection_parking_node
   ${OpenCV_LIBRARIES}
 )
 
 # ── Instalación ───────────────────────────────────────────────────────────────
-install(TARGETS object_detection_parking
+install(TARGETS object_detection_parking_node
   DESTINATION lib/${PROJECT_NAME}
 )
 
