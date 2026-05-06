@@ -293,7 +293,10 @@ private:
                     start_ = std::chrono::steady_clock::now();
                     break;
                 }
-                else { (count_pass_ > 2) ? (speed_pid_ = -200, angle_pd_ = 65) : on_lane(); }
+                else {
+                    if (count_pass_ > 2) { speed_pid_ = -200; angle_pd_ = 65; }
+                    else { on_lane(); }
+                }
             }
         }
         else if (current.ID == MOVING_RIGHT) {
