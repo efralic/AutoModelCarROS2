@@ -33,9 +33,9 @@ rosidl_get_typesupport_target(cpp_typesupport_target
   ${PROJECT_NAME} "rosidl_typesupport_cpp")
 
 # ── Ejecutable ────────────────────────────────────────────────────────────────
-add_executable(object_detection src/object_detection.cpp)
+add_executable(object_detection_node src/object_detection.cpp)
 
-ament_target_dependencies(object_detection
+ament_target_dependencies(object_detection_node
   rclcpp
   std_msgs
   sensor_msgs
@@ -44,7 +44,7 @@ ament_target_dependencies(object_detection
 )
 
 # Enlazar con el soporte del msg custom generado
-target_link_libraries(object_detection
+target_link_libraries(object_detection_node
   "${cpp_typesupport_target}"
   ${OpenCV_LIBRARIES}
 )
