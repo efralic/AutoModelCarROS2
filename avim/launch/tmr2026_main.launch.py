@@ -148,7 +148,7 @@ def generate_launch_description():
         # Usa Astra Pro (color + depth para detección 3D de obstáculos)
         Node(
             package='object_detection',
-            executable='object_detection',
+            executable='object_detection_node',
             name='object_detection',
             output='screen',
             respawn=True,
@@ -162,7 +162,7 @@ def generate_launch_description():
         # ── Object detection parking (prueba 4) ───────────────────────────
         Node(
             package='object_detection_parking',
-            executable='object_detection_parking',
+            executable='object_detection_parking_node',
             name='object_detection_parking',
             output='screen',
             respawn=True,
