@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>hardware_interface</name>
+  <version>0.0.0</version>
+  <description>
+    Hardware Interface  –  ROS 2 (Humble / Iron)
+    Raspberry Pi 4B
+
+    Nodos en la Pi:
+      • motor_driver.py      → motores I2C (0x34) + servo pigpio
+      • ultrasonic_sensors.py → HC-SR04 x4 vía pigpio GPIO
+      • teleop_controller.py  → joystick PS4
+
+    Nodos en el ESP32 (micro-ROS):
+      • lights_controller    → LEDs blinkers y señales
+  </description>
+
+  <maintainer email="jose@todo.todo">jose</maintainer>
+  <license>TODO</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>ament_cmake_python</buildtool_depend>
+
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>joy</exec_depend>
+
+  <!-- Dependencias Python del sistema (no ROS) -->
+  <!-- smbus2 y pigpio se instalan con pip/apt, no con rosdep -->
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>
