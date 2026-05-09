@@ -15,7 +15,7 @@ def generate_launch_description():
             executable='lane_detection',
             name='lane_detection',
             output='screen',
-            parameters=[{'camera_topic': '/usb_cam/image_raw'}],
+            parameters=[{'camera_topic': '/arducam/image_raw'}],
         ),
 
         Node(
