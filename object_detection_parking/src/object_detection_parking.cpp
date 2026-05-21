@@ -1,11 +1,18 @@
 // ─────────────────────────────────────────────────────────────────────────────
-//  object_detection_parking.cpp  –  ROS 2 (Humble / Iron)
-//  Sensor: Orbbec Astra Pro (reemplaza LIDAR LD14P / RPLIDAR C1)
+//  object_detection_parking.cpp  –  ROS 2 (Humble)
+//  Sensor: Yahboom/Angstrong Nuwa-HP60C (reemplaza Orbbec Astra Pro)
 //  Prueba 4: Estacionamiento
+//
+//  CAMBIOS RESPECTO A LA VERSIÓN PREVIA (Astra Pro):
+//    • Tópico:  /camera/depth/image_raw
+//              → /ascamera_hp60c/camera_publisher/depth0/image_raw
+//    • FOV horizontal:  60.0° → 73.8°
+//    • RANGE_MIN_MM:    180 → 200  (rango mínimo oficial de Nuwa)
+//    • RANGE_MAX_MM:    440        (sin cambio — específico del parking)
 //
 //  DIFERENCIAS respecto a object_detection.cpp:
 //    • RANGE_MAX_MM = 440  (44 cm — detecta solo el cajón cercano)
-//    • RANGE_MIN_MM = 180  (18 cm — distancia mínima al coche vecino)
+//    • RANGE_MIN_MM = 200  (20 cm — rango mínimo de Nuwa)
 //    • EPSILON      = 10   (clusters más pequeños y compactos)
 //    → El rango corto hace que el nodo "vea" solo los coches vecinos
 //      del cajón de estacionamiento, ignorando el entorno lejano.
@@ -13,9 +20,7 @@
 //  INVARIANTE (idéntico a object_detection.cpp):
 //    • DBSCAN, transform_point, get_centroids_objects → sin cambios
 //    • Formato de salida /objects_points → sin cambios
-//    • Master_parking_bateria.cpp → sin cambios
-//
-//  Migración ROS 1 → ROS 2: mismos cambios que object_detection.cpp
+//    • Master_parking → sin cambios
 // ─────────────────────────────────────────────────────────────────────────────
 
 #include <cmath>
@@ -26,34 +31,29 @@
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/image.hpp"
 #include "geometry_msgs/msg/point.hpp"
-#include "object_detection/msg/points_objects.hpp"   // msg del paquete object_detection
+#include "object_detection/msg/points_objects.hpp"
 
 #include <opencv2/opencv.hpp>
-#include <opencv2/imgproc.hpp>
 
-// ── Constantes DBSCAN ────────────────────────────────────────────────────────
+// ── Constantes DBSCAN ───────────────────────────────────────────────────────
 #define UNCLASSIFIED -1
 #define NOISE        -2
 #define SUCCESS       0
 #define FAILURE      -3
 
-// ── Parámetros Orbbec Astra Pro ───────────────────────────────────────────────
-static constexpr float ASTRA_FOV_H_DEG = 60.0f;
-static constexpr float ASTRA_CX        = 320.0f;
-static constexpr int   ASTRA_WIDTH     = 640;
+// ── Parámetros de la Nuwa-HP60C ─────────────────────────────────────────────
+static constexpr float CAMERA_FOV_H_DEG = 73.8f;
+static constexpr int   CAMERA_WIDTH     = 640;
 
-// ── Rango para estacionamiento (rango CORTO — solo coches vecinos) ────────────
-// ROS 1: RANGE = 0.44f m,  RANGE_MIN = 0.18f m
-// ROS 2: mismos valores convertidos a mm
+// ── Rango para estacionamiento (rango CORTO — solo coches vecinos) ──────────
 static constexpr float RANGE_MAX_MM = 440.0f;   // 44 cm
-static constexpr float RANGE_MIN_MM = 180.0f;   // 18 cm
+static constexpr float RANGE_MIN_MM = 200.0f;   // 20 cm (mínimo Nuwa)
 
-// Submuestreo: menos pasos que en object_detection normal porque
-// el rango es muy corto y hay pocos puntos válidos
+// Submuestreo: menos pasos porque el rango es muy corto y hay pocos puntos
 static constexpr int   DEPTH_STEP   = 4;
 
 
-// ── DBSCAN (idéntico al de object_detection.cpp) ─────────────────────────────
+// ── DBSCAN (idéntico al de object_detection.cpp) ────────────────────────────
 class PointC {
 public:
     float x, y;
@@ -71,7 +71,6 @@ public:
     {
         for (auto & p : pts)
             m_points.emplace_back((float)p.x, (float)p.y);
-        m_pointSize = m_points.size();
     }
 
     int run() {
@@ -89,23 +88,23 @@ public:
     }
 
 private:
-    unsigned int m_pointSize, m_minPoints;
+    unsigned int m_minPoints;
     float        m_epsilon;
 
-    inline double calculateDistance(const PointC & a, const PointC & b) {
+    inline double dist(const PointC & a, const PointC & b) {
         return std::sqrt((a.x-b.x)*(a.x-b.x) + (a.y-b.y)*(a.y-b.y));
     }
 
-    std::vector<int> calculateCluster(const PointC & point) {
+    std::vector<int> calcCluster(const PointC & p) {
         std::vector<int> idx;
         for (int i = 0; i < (int)m_points.size(); i++)
-            if (calculateDistance(point, m_points[i]) <= m_epsilon)
+            if (dist(p, m_points[i]) <= m_epsilon)
                 idx.push_back(i);
         return idx;
     }
 
     int expandCluster(PointC & point, int clusterID) {
-        auto seeds = calculateCluster(point);
+        auto seeds = calcCluster(point);
         if (seeds.size() < m_minPoints) { point.clusterID = NOISE; return FAILURE; }
 
         int indexCore = 0, index = 0;
@@ -118,7 +117,7 @@ private:
         seeds.erase(seeds.begin() + indexCore);
 
         for (size_t i = 0, n = seeds.size(); i < n; i++) {
-            auto nb = calculateCluster(m_points[seeds[i]]);
+            auto nb = calcCluster(m_points[seeds[i]]);
             if (nb.size() >= m_minPoints) {
                 for (auto ni : nb) {
                     if (m_points[ni].clusterID == UNCLASSIFIED ||
@@ -137,18 +136,18 @@ private:
 };
 
 
-// ─────────────────────────────────────────────────────────────────────────────
+// ────────────────────────────────────────────────────────────────────────────
 //  ObjectDetectionParking – nodo ROS 2
-// ─────────────────────────────────────────────────────────────────────────────
+// ────────────────────────────────────────────────────────────────────────────
 class ObjectDetectionParking : public rclcpp::Node
 {
 public:
     ObjectDetectionParking() : rclcpp::Node("ObjectDetectionParking")
     {
-        // ── Parámetros configurables ──────────────────────────────────────
         this->declare_parameter("minimum_points", 1);
-        this->declare_parameter("epsilon",        10);   // ← más pequeño que en navegación
-        this->declare_parameter("depth_topic",    "/camera/depth/image_raw");
+        this->declare_parameter("epsilon",        10);
+        this->declare_parameter("depth_topic",
+            "/ascamera_hp60c/camera_publisher/depth0/image_raw");
         this->declare_parameter("depth_step",     DEPTH_STEP);
 
         MINIMUM_POINTS_ = this->get_parameter("minimum_points").as_int();
@@ -156,21 +155,20 @@ public:
         depth_step_     = this->get_parameter("depth_step").as_int();
         std::string depth_topic = this->get_parameter("depth_topic").as_string();
 
-        // ── Publicador ────────────────────────────────────────────────────
         pub_ = this->create_publisher<object_detection::msg::PointsObjects>(
                    "objects_points", 1);
 
-        // ── Subscriptor profundidad Astra Pro ─────────────────────────────
         depth_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
             depth_topic, 1,
             std::bind(&ObjectDetectionParking::depth_callback, this,
                       std::placeholders::_1));
 
         RCLCPP_INFO(get_logger(),
-            "ObjectDetectionParking listo | Rango: %.0f–%.0f mm "
-            "| DBSCAN eps=%d | paso=%d px | tópico: %s",
-            RANGE_MIN_MM, RANGE_MAX_MM,
-            EPSILON_, depth_step_, depth_topic.c_str());
+            "ObjectDetectionParking [Nuwa-HP60C] | topic: %s", depth_topic.c_str());
+        RCLCPP_INFO(get_logger(),
+            "FOV=%.1f° | Rango %.0f-%.0f mm | DBSCAN eps=%d | paso=%d px",
+            CAMERA_FOV_H_DEG, RANGE_MIN_MM, RANGE_MAX_MM,
+            EPSILON_, depth_step_);
     }
 
 private:
@@ -185,8 +183,12 @@ private:
 
     // ─────────────────────────────────────────────────────────────────────
     //  depth_callback
-    //  Misma lógica que object_detection.cpp pero con RANGE corto (18-44 cm)
+    //  Misma lógica que object_detection.cpp pero con RANGE corto (20-44 cm)
     //  para detectar solo los coches vecinos del cajón de estacionamiento.
+    //
+    //  Mapeo píxel → ángulo (Nuwa-HP60C FOV = 73.8°):
+    //    angle_deg = 90° + (u - 320) × (73.8°/640)
+    //  Rango resultante: 53.1° (izq) ... 90° (centro) ... 126.9° (der)
     // ─────────────────────────────────────────────────────────────────────
     void depth_callback(const sensor_msgs::msg::Image::SharedPtr msg)
     {
@@ -198,9 +200,9 @@ private:
 
         int   width        = (int)msg->width;
         float cx           = width / 2.0f;
-        float fov_per_pixel = ASTRA_FOV_H_DEG / (float)width;
+        float fov_per_pixel = CAMERA_FOV_H_DEG / (float)width;
 
-        std::vector<std::pair<float, float>> scan_points;  // (angle_deg, range_cm)
+        std::vector<std::pair<float, float>> scan_points;
 
         for (int v = 0; v < (int)msg->height; v += depth_step_) {
             const uint16_t* row = reinterpret_cast<const uint16_t*>(
@@ -208,7 +210,7 @@ private:
             for (int u = 0; u < width; u += depth_step_) {
                 uint16_t d = row[u];
                 if (d == 0) continue;
-                // Rango corto: solo coches a ≤44 cm
+                // Rango corto: solo coches a 20-44 cm
                 if ((float)d < RANGE_MIN_MM || (float)d > RANGE_MAX_MM) continue;
 
                 float angle_deg = 90.0f + (u - cx) * fov_per_pixel;
@@ -238,13 +240,12 @@ private:
         }
     }
 
-    // ── get_object_points (idéntico al de object_detection.cpp) ──────────
-    void get_object_points(const std::vector<std::pair<float,float>> & scan_points)
+    void get_object_points(const std::vector<std::pair<float,float>> & sp)
     {
         points_.clear();
         clusters_points_.clear();
 
-        for (auto & [angle_deg, range_cm] : scan_points) {
+        for (auto & [angle_deg, range_cm] : sp) {
             float r   = range_cm;
             float rad = (180.0f - angle_deg) * (float)M_PI / 180.0f;
             float x   = 400.0f + r * std::cos(rad);
@@ -256,13 +257,12 @@ private:
 
         if (points_.empty()) return;
 
-        DBSCAN dbScan(MINIMUM_POINTS_, (float)EPSILON_, points_);
-        dbScan.run();
-        dbScan.getCluster(clusters_points_);
+        DBSCAN db(MINIMUM_POINTS_, (float)EPSILON_, points_);
+        db.run();
+        db.getCluster(clusters_points_);
         get_centroids_objects(clusters_points_);
     }
 
-    // ── transform_point (idéntico) ────────────────────────────────────────
     void transform_point(const cv::Point & point,
                          geometry_msgs::msg::Point & point_msg)
     {
@@ -283,7 +283,6 @@ private:
         point_msg.x = cv::norm(point - cv::Point(400, 400));
     }
 
-    // ── get_centroids_objects (idéntico) ──────────────────────────────────
     void get_centroids_objects(
         const std::map<int, std::vector<cv::Point>> & cp)
     {
